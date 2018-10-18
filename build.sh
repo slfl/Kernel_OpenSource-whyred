@@ -43,7 +43,7 @@ export ARCH=arm64
 export SUBARCH=arm64
 
 #misc
-CONFIG=whyred-perf_defconfig
+CONFIG=whyred_defconfig
 THREAD="-j$(nproc --all)"
 
 #main script

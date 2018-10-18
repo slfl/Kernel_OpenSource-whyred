@@ -247,7 +247,7 @@ static int __acpi_processor_start(struct acpi_device *device)
 	if (result)
 		return -ENODEV;
 
-	if (!cpuidle_get_driver() || cpuidle_get_driver() == &acpi_idle_driver)
+	if (!cpuidle_get_driver() || acpi_processor_using_idle_driver())
 		acpi_processor_power_init(pr);
 
 	result = acpi_pss_perf_init(pr, device);
@@ -259,6 +259,9 @@ static int __acpi_processor_start(struct acpi_device *device)
 	if (ACPI_SUCCESS(status))
 		return 0;
 
+	result = -ENODEV;
+	acpi_pss_perf_exit(pr, device);
+
 err_power_exit:
 	acpi_processor_power_exit(pr);
 	return result;
@@ -267,11 +270,16 @@ err_power_exit:
 static int acpi_processor_start(struct device *dev)
 {
 	struct acpi_device *device = ACPI_COMPANION(dev);
+	int ret;
 
 	if (!device)
 		return -ENODEV;
 
-	return __acpi_processor_start(device);
+	/* Protect against concurrent CPU hotplug operations */
+	get_online_cpus();
+	ret = __acpi_processor_start(device);
+	put_online_cpus();
+	return ret;
 }
 
 static int acpi_processor_stop(struct device *dev)
